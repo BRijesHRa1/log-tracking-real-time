@@ -9,10 +9,10 @@ COPY package*.json ./
 RUN npm install --production
 
 # Copy source code
-COPY src ./src
+COPY server ./server
 
-# Switch into src where your index.js lives
-WORKDIR /usr/src/app/src
+# Switch into server where your index.js lives
+WORKDIR /usr/src/app/server
 
 # Expose your app port
 EXPOSE 3000

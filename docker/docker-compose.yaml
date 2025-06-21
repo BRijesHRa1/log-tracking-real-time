@@ -12,7 +12,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U loguser -d log_tracking"]
       interval: 10s
@@ -21,7 +21,8 @@ services:
 
   app:
     build:
-      context: .            # look in project root for Dockerfile
+      context: ..            # look in project root for source code
+      dockerfile: docker/Dockerfile  # specify the Dockerfile location
     container_name: log_app
     ports:
       - "3000:3000"         # host 3000 → container 3000
