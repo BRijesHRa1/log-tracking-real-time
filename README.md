@@ -7,73 +7,30 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-ISC-red.svg)](LICENSE)
 
+
 A production-ready, scalable log aggregation and monitoring system built with modern observability practices. This system provides real-time log ingestion, persistent storage, metrics collection, and visualization capabilities for distributed applications.
 
-## 🏗️ System Architecture
-
-```mermaid
-graph TB
-    subgraph "Client Layer"
-        WEB[Web Browser]
-        API[API Clients]
-        CURL[cURL/Postman]
-    end
-    
-    subgraph "Application Layer"
-        APP[Node.js Application<br/>Express Server<br/>Port: 3000]
-        APP --> |Generates| LOGS[Synthetic Logs]
-        APP --> |Exposes| METRICS[Prometheus Metrics]
-    end
-    
-    subgraph "Data Layer"
-        PG[(PostgreSQL Database<br/>Port: 5432<br/>- logs table<br/>- indexes<br/>- views)]
-        APP --> |INSERT/SELECT| PG
-    end
-    
-    subgraph "Monitoring Layer"
-        PROM[Prometheus<br/>Port: 9090<br/>- Metrics scraping<br/>- Time series storage]
-        GRAF[Grafana<br/>Port: 3001<br/>- Dashboards<br/>- Visualizations]
-        
-        PROM --> |Scrapes /metrics| APP
-        GRAF --> |Queries| PROM
-        GRAF --> |Direct queries| PG
-    end
-    
-    subgraph "Infrastructure Layer"
-        DOCKER[Docker Compose<br/>- Container orchestration<br/>- Service discovery<br/>- Volume management]
-        HEALTH[Health Checks<br/>- Database connectivity<br/>- Service availability]
-    end
-    
-    WEB --> APP
-    API --> APP
-    CURL --> APP
-    
-    DOCKER -.-> APP
-    DOCKER -.-> PG
-    DOCKER -.-> PROM
-    DOCKER -.-> GRAF
-    
-    APP --> HEALTH
-    PG --> HEALTH
-```
+> **Architecture Note**: This project follows Node.js best practices with a `server/` directory for backend code, making it clear this contains server-side application logic.
 
 ## ⚡ Technology Stack
 
 ### Core Technologies
-| Component | Technology | Version | Purpose |
-|-----------|------------|---------|---------|
-| **Runtime** | Node.js | 18.x | JavaScript runtime environment |
-| **Web Framework** | Express.js | 5.1.0 | REST API and HTTP server |
-| **Database** | PostgreSQL | 15 | Persistent log storage and analytics |
-| **Metrics** | Prometheus | Latest | Time-series metrics collection |
-| **Monitoring** | prom-client | 15.1.3 | Node.js Prometheus integration |
-| **Visualization** | Grafana | Latest | Dashboards and alerting |
-| **Containerization** | Docker Compose | 3.8 | Multi-service orchestration |
+
+| Component                  | Technology     | Version | Purpose                              |
+| -------------------------- | -------------- | ------- | ------------------------------------ |
+| **Runtime**          | Node.js        | 18.x    | JavaScript runtime environment       |
+| **Web Framework**    | Express.js     | 5.1.0   | REST API and HTTP server             |
+| **Database**         | PostgreSQL     | 15      | Persistent log storage and analytics |
+| **Metrics**          | Prometheus     | Latest  | Time-series metrics collection       |
+| **Monitoring**       | prom-client    | 15.1.3  | Node.js Prometheus integration       |
+| **Visualization**    | Grafana        | Latest  | Dashboards and alerting              |
+| **Containerization** | Docker Compose | 3.8     | Multi-service orchestration          |
 
 ### Database Client
-| Library | Version | Purpose |
-|---------|---------|---------|
-| **pg** | 8.11.3 | PostgreSQL client with connection pooling |
+
+| Library      | Version | Purpose                                   |
+| ------------ | ------- | ----------------------------------------- |
+| **pg** | 8.11.3  | PostgreSQL client with connection pooling |
 
 ## 📊 Data Flow Architecture
 
@@ -84,7 +41,7 @@ sequenceDiagram
     participant Database
     participant Metrics
     participant Prometheus
-    
+  
     Note over Client,Prometheus: Log Generation Flow
     Client->>Express: GET / (Generate Log)
     Express->>Express: generateLogEntry()
@@ -92,13 +49,13 @@ sequenceDiagram
     Database-->>Express: Return saved log with ID
     Express->>Metrics: Update counters & gauges
     Express-->>Client: JSON response with log data
-    
+  
     Note over Client,Prometheus: Metrics Scraping Flow
     Prometheus->>Express: GET /metrics
     Express->>Database: Get connection info
     Express->>Metrics: Update DB metrics
     Express-->>Prometheus: Prometheus format metrics
-    
+  
     Note over Client,Prometheus: Log Retrieval Flow
     Client->>Express: GET /logs?limit=50
     Express->>Database: SELECT recent logs
@@ -111,6 +68,7 @@ sequenceDiagram
 ### Tables
 
 #### `logs` Table
+
 ```sql
 CREATE TABLE logs (
     id SERIAL PRIMARY KEY,
@@ -127,6 +85,7 @@ CREATE TABLE logs (
 ```
 
 #### Indexes
+
 ```sql
 CREATE INDEX idx_logs_timestamp ON logs(timestamp);
 CREATE INDEX idx_logs_level ON logs(level);
@@ -135,6 +94,7 @@ CREATE INDEX idx_logs_created_at ON logs(created_at);
 ```
 
 #### Views
+
 ```sql
 -- Recent logs (last 24 hours)
 CREATE VIEW recent_logs AS
@@ -155,22 +115,25 @@ FROM logs GROUP BY service, level;
 
 ### Endpoints Overview
 
-| Method | Endpoint | Description | Response |
-|--------|----------|-------------|----------|
-| `GET` | `/` | Generate and save new log entry | Log object with DB ID |
-| `GET` | `/logs` | Retrieve recent logs | Array of log objects |
-| `GET` | `/stats` | Get aggregated statistics | Statistics summary |
-| `GET` | `/health` | System health check | Health status |
-| `GET` | `/metrics` | Prometheus metrics | Metrics in Prometheus format |
-| `POST` | `/generate` | Bulk generate logs | Array of generated logs |
+| Method   | Endpoint      | Description                     | Response                     |
+| -------- | ------------- | ------------------------------- | ---------------------------- |
+| `GET`  | `/`         | Generate and save new log entry | Log object with DB ID        |
+| `GET`  | `/logs`     | Retrieve recent logs            | Array of log objects         |
+| `GET`  | `/stats`    | Get aggregated statistics       | Statistics summary           |
+| `GET`  | `/health`   | System health check             | Health status                |
+| `GET`  | `/metrics`  | Prometheus metrics              | Metrics in Prometheus format |
+| `POST` | `/generate` | Bulk generate logs              | Array of generated logs      |
 
 ### Detailed API Specifications
 
 #### `GET /logs`
+
 **Query Parameters:**
+
 - `limit` (optional): Number of logs to retrieve (default: 50, max: 1000)
 
 **Response Format:**
+
 ```json
 {
   "message": "Recent logs retrieved",
@@ -193,7 +156,9 @@ FROM logs GROUP BY service, level;
 ```
 
 #### `POST /generate`
+
 **Request Body:**
+
 ```json
 {
   "count": 100
@@ -201,6 +166,7 @@ FROM logs GROUP BY service, level;
 ```
 
 **Response Format:**
+
 ```json
 {
   "message": "100 log entries generated and saved",
@@ -209,7 +175,9 @@ FROM logs GROUP BY service, level;
 ```
 
 #### `GET /health`
+
 **Response Format:**
+
 ```json
 {
   "status": "healthy",
@@ -230,20 +198,24 @@ FROM logs GROUP BY service, level;
 ### Application Metrics
 
 #### Counters
+
 - `log_count_total` - Total logs generated (labels: level, service)
 - `db_operations_total` - Database operations count (labels: operation, status)
 - `db_logs_saved_total` - Logs saved to database (labels: level, service)
 
 #### Gauges
+
 - `response_time_ms` - Response time in milliseconds (labels: service)
 - `cpu_usage_percent` - CPU usage percentage (labels: service)
 - `memory_usage_mb` - Memory usage in MB (labels: service)
 - `db_connections_total` - Database connections (labels: status)
 
 #### Histograms
+
 - `db_query_duration_seconds` - Database query duration (labels: operation)
 
 ### Default Node.js Metrics
+
 - Process CPU usage
 - Memory usage (heap/external)
 - Event loop lag
@@ -253,52 +225,57 @@ FROM logs GROUP BY service, level;
 
 ### Prerequisites
 
-| Requirement | Minimum Version | Recommended |
-|-------------|----------------|-------------|
-| **Node.js** | 16.x | 18.x+ |
-| **npm** | 8.x | 9.x+ |
-| **Docker** | 20.x | Latest |
-| **Docker Compose** | 2.x | Latest |
+| Requirement              | Minimum Version | Recommended |
+| ------------------------ | --------------- | ----------- |
+| **Node.js**        | 16.x            | 18.x+       |
+| **npm**            | 8.x             | 9.x+        |
+| **Docker**         | 20.x            | Latest      |
+| **Docker Compose** | 2.x             | Latest      |
 
 ### Quick Start
 
 1. **Clone the repository**
+
 ```bash
 git clone https://github.com/your-username/real-time-log-tracking.git
 cd real-time-log-tracking
 ```
 
 2. **Start the complete stack**
+
 ```bash
+cd docker
 docker-compose up -d
 ```
 
 3. **Verify services are running**
+
 ```bash
+cd docker
 docker-compose ps
 ```
 
 ### Service URLs
 
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| **Application API** | http://localhost:3000 | N/A |
-| **Prometheus** | http://localhost:9090 | N/A |
-| **Grafana** | http://localhost:3001 | admin/admin |
-| **PostgreSQL** | localhost:5432 | loguser/logpass |
+| Service                   | URL                   | Credentials     |
+| ------------------------- | --------------------- | --------------- |
+| **Application API** | http://localhost:3000 | N/A             |
+| **Prometheus**      | http://localhost:9090 | N/A             |
+| **Grafana**         | http://localhost:3001 | admin/admin     |
+| **PostgreSQL**      | localhost:5432        | loguser/logpass |
 
 ## 🔧 Configuration
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DB_HOST` | postgres | Database host |
-| `DB_PORT` | 5432 | Database port |
-| `DB_NAME` | log_tracking | Database name |
-| `DB_USER` | loguser | Database username |
-| `DB_PASSWORD` | logpass | Database password |
-| `PORT` | 3000 | Application port |
+| Variable        | Default      | Description       |
+| --------------- | ------------ | ----------------- |
+| `DB_HOST`     | postgres     | Database host     |
+| `DB_PORT`     | 5432         | Database port     |
+| `DB_NAME`     | log_tracking | Database name     |
+| `DB_USER`     | loguser      | Database username |
+| `DB_PASSWORD` | logpass      | Database password |
+| `PORT`        | 3000         | Application port  |
 
 ### Docker Compose Services
 
@@ -313,11 +290,13 @@ services:
 ## 📝 Usage Examples
 
 ### Generate Single Log Entry
+
 ```bash
 curl http://localhost:3000/
 ```
 
 ### Bulk Generate Logs
+
 ```bash
 curl -X POST http://localhost:3000/generate \
   -H "Content-Type: application/json" \
@@ -325,16 +304,19 @@ curl -X POST http://localhost:3000/generate \
 ```
 
 ### Retrieve Recent Logs
+
 ```bash
 curl "http://localhost:3000/logs?limit=10"
 ```
 
 ### Check System Health
+
 ```bash
 curl http://localhost:3000/health
 ```
 
 ### View Prometheus Metrics
+
 ```bash
 curl http://localhost:3000/metrics
 ```
@@ -343,29 +325,51 @@ curl http://localhost:3000/metrics
 
 ```
 real-time-log-tracking/
-├── 📁 src/
-│   ├── 📄 index.js          # Main Express application & API routes
-│   ├── 📄 database.js       # PostgreSQL connection pool & queries
-│   ├── 📄 metrics.js        # Prometheus metrics definitions
-│   └── 📄 util.js           # Synthetic log data generation
-├── 📄 docker-compose.yaml   # Multi-service orchestration
-├── 📄 Dockerfile           # Node.js application container
-├── 📄 init.sql             # PostgreSQL schema & sample data
-├── 📄 prometheus-config.yaml # Prometheus scraping configuration
-├── 📄 package.json         # Node.js dependencies & scripts
-└── 📄 README.md            # This documentation
+├── 📁 server/                 # Server-side application code
+│   ├── 📄 index.js            # Main Express application & API routes
+│   ├── 📄 database.js         # PostgreSQL connection pool & queries
+│   ├── 📄 metrics.js          # Prometheus metrics definitions
+│   └── 📄 util.js             # Synthetic log data generation
+├── 📁 docker/                 # Docker configuration files
+│   ├── 📄 docker-compose.yaml # Multi-service orchestration
+│   ├── 📄 Dockerfile          # Node.js application container
+│   └── 📄 prometheus-config.yaml # Prometheus scraping configuration
+├── 📁 database/               # Database configuration & scripts
+│   └── 📄 init.sql            # PostgreSQL schema & sample data
+├── 📄 package.json            # Node.js dependencies & scripts
+├── 📄 .gitignore              # Git ignore patterns
+└── 📄 README.md               # Main project documentation
 ```
+
+### Folder Descriptions
+
+- **`server/`** – Server-side application code
+
+  - `index.js` – Main Express server with REST API endpoints
+  - `database.js` – PostgreSQL connection pool and database operations
+  - `metrics.js` – Prometheus metrics collection and instrumentation
+  - `util.js` – Synthetic log data generation functions
+- **`docker/`** – Docker configuration and orchestration
+
+  - `docker-compose.yaml` – Multi-service container orchestration
+  - `Dockerfile` – Node.js application container definition
+  - `prometheus-config.yaml` – Prometheus metrics scraping configuration
+- **`database/`** – Database schema and configuration
+
+  - `init.sql` – PostgreSQL initialization script with schema and sample data
 
 ## 🔍 Development & Debugging
 
 ### Local Development Setup
 
 1. **Install dependencies**
+
 ```bash
 npm install
 ```
 
 2. **Start PostgreSQL** (using Docker)
+
 ```bash
 docker run --name postgres-dev \
   -e POSTGRES_DB=log_tracking \
@@ -375,11 +379,13 @@ docker run --name postgres-dev \
 ```
 
 3. **Initialize database**
+
 ```bash
-psql -h localhost -U loguser -d log_tracking -f init.sql
+psql -h localhost -U loguser -d log_tracking -f database/init.sql
 ```
 
 4. **Start application**
+
 ```bash
 npm start
 ```
@@ -387,17 +393,22 @@ npm start
 ### Debugging & Troubleshooting
 
 #### Check Container Logs
+
 ```bash
+cd docker
 docker-compose logs app
 docker-compose logs postgres
 ```
 
 #### Database Connection Test
+
 ```bash
+cd docker
 docker-compose exec postgres psql -U loguser -d log_tracking -c "SELECT COUNT(*) FROM logs;"
 ```
 
 #### Metrics Verification
+
 ```bash
 curl -s http://localhost:3000/metrics | grep log_count_total
 ```
@@ -405,12 +416,14 @@ curl -s http://localhost:3000/metrics | grep log_count_total
 ## 📊 Performance Characteristics
 
 ### Throughput Benchmarks
+
 - **Single log generation**: ~500 req/sec
 - **Bulk log generation (100 logs)**: ~50 req/sec
 - **Log retrieval (50 logs)**: ~1000 req/sec
 - **Database connections**: 20 max concurrent
 
 ### Resource Requirements
+
 - **Memory**: 128MB - 512MB (depending on load)
 - **CPU**: 0.1 - 1.0 cores
 - **Storage**: Depends on log retention (approx. 1KB per log entry)
@@ -426,32 +439,15 @@ curl -s http://localhost:3000/metrics | grep log_count_total
 ## 🚀 Production Deployment
 
 ### Scaling Considerations
+
 - Use external PostgreSQL cluster for high availability
 - Implement Redis for session storage and caching
 - Add load balancer for multiple application instances
 - Configure log rotation and retention policies
 
 ### Monitoring in Production
+
 - Set up Grafana alerts for error rates and response times
 - Monitor database performance and connection pool usage
 - Implement structured logging with correlation IDs
 - Add distributed tracing for complex operations
-
----
-
-## 📄 License
-
-This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-**Built with ❤️ for modern observability and monitoring practices**
-
