@@ -1,12 +1,39 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:15
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: log_tracking
+      POSTGRES_USER: loguser
+      POSTGRES_PASSWORD: logpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loguser -d log_tracking"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build:
       context: .            # look in project root for Dockerfile
     container_name: log_app
     ports:
       - "3000:3000"         # host 3000 → container 3000
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=log_tracking
+      - DB_USER=loguser
+      - DB_PASSWORD=logpass
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   prometheus:
     image: prom/prometheus:latest
@@ -28,6 +55,7 @@ services:
     depends_on:
       - prometheus
 
-# (optional) define a volume for Grafana persistence
+# Define volumes for data persistence
 volumes:
   grafana_data: {}
+  postgres_data: {}
