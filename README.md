@@ -5,12 +5,12 @@
 [![Prometheus](https://img.shields.io/badge/Prometheus-Latest-orange.svg)](https://prometheus.io/)
 [![Grafana](https://img.shields.io/badge/Grafana-Latest-yellow.svg)](https://grafana.com/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)](https://www.docker.com/)
-[![License](https://img.shields.io/badge/License-ISC-red.svg)](LICENSE)
+
+<img width="1142" alt="Screenshot 2025-06-21 at 2 53 15 PM" src="https://github.com/user-attachments/assets/cbbfe9eb-53d9-4bdc-a390-c51d918dba2b" />
 
 
 A production-ready, scalable log aggregation and monitoring system built with modern observability practices. This system provides real-time log ingestion, persistent storage, metrics collection, and visualization capabilities for distributed applications.
 
-> **Architecture Note**: This project follows Node.js best practices with a `server/` directory for backend code, making it clear this contains server-side application logic.
 
 ## ⚡ Technology Stack
 
